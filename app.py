@@ -13,14 +13,23 @@ app = dash.Dash(__name__)
 
 app.layout = html.Div(children=[
     html.H1(children="Plot Playground"),
-    html.A("Return HOME", href="https://tsuchiya-ryo.github.io/orgsynscalc/"),
-    html.H3(children="2d-plot"),
+    html.A("HOME", href="https://tsuchiya-ryo.github.io/orgsynscalc/"),
+    html.H2(children="2d-plot"),
+    dcc.Dropdown(id="labelside2d",
+                options=[
+                    {"label":"No label column", "value":"no"},
+                    {"label":"Right-side label column", "value":"right"},
+                    {"label":"Left-side label column", "value":"left"}
+                ],
+                value="no",
+                style={"height":"30px", "width":"250px"}
+                ),
+    html.Br(),
     dcc.Upload(
         id='upload-data',
         children=html.A("Click to Select 2d File (or drag and drop)"),
         multiple=True,
         max_size = 500000,
-
      style={
             'width': '100%',
             'height': '60px',
@@ -31,7 +40,7 @@ app.layout = html.Div(children=[
             'textAlign': 'center',
             'margin': '10px'
      }),
-
+    html.Br(),
 
     dcc.Dropdown(
         id="colorpalette2d",
@@ -42,7 +51,13 @@ app.layout = html.Div(children=[
             {"label":"Earth", "value":"earth"},
             {"label":"Tropic", "value":"tropic"},
             {"label":"Icefire","value":"icefire"},
-            {"label":"Greys", "value":"greys"}
+            {"label":"Greys", "value":"greys"},
+            {"label":"Electric", "value":"electric"},
+            {"label":"Rainbow", "value":"rainbow"},
+            {"label":"Plasma", "value":"plasma"},
+            {"label":"Picnic", "value":"picnic"},
+            {"label":"Speed", "value":"speed"},
+            {"label":"Balance", "value":"balance"}
         ],
         value="viridis",
         style={"height":"30px", "width":"150px"}
@@ -73,7 +88,17 @@ app.layout = html.Div(children=[
     ]),
 
 
-    html.H3(children="3d-plot"),
+    html.H2(children="3d-plot"),
+    dcc.Dropdown(id="labelside3d",
+                options=[
+                    {"label":"No label column", "value":"no"},
+                    {"label":"Right-side label column", "value":"right"},
+                    {"label":"Left-side label column", "value":"left"}
+                ],
+                value="no",
+                style={"height":"30px", "width":"250px"}
+                ),
+    html.Br(),
     dcc.Upload(
         id='upload-data3d',
         children=html.A("Click to Select 3d File (or drag and drop)"),
@@ -90,6 +115,7 @@ app.layout = html.Div(children=[
             'textAlign': 'center',
             'margin': '10px'
      }),
+     html.Br(),
 
 
     dcc.Dropdown(
@@ -101,7 +127,13 @@ app.layout = html.Div(children=[
             {"label":"Earth", "value":"earth"},
             {"label":"Tropic", "value":"tropic"},
             {"label":"Icefire","value":"icefire"},
-            {"label":"Greys", "value":"greys"}
+            {"label":"Greys", "value":"greys"},
+            {"label":"Electric", "value":"electric"},
+            {"label":"Rainbow", "value":"rainbow"},
+            {"label":"Plasma", "value":"plasma"},
+            {"label":"Picnic", "value":"picnic"},
+            {"label":"Speed", "value":"speed"},
+            {"label":"Balance", "value":"balance"}
         ],
         value="viridis",
         style={"height":"30px", "width":"150px"}
@@ -139,7 +171,6 @@ app.layout = html.Div(children=[
 
 def parse_contents(contents):
     content_type, content_string = contents.split(",")
-    print("----------------------")
     decoded = base64.b64decode(content_string)
     with open("./plotdata/tmp.csv", "w") as f:
         f.write(decoded.decode("utf-8"))
@@ -149,25 +180,19 @@ def parse_contents(contents):
     y = df.iloc[:,1]
 
     if df.shape[1] == 2:
-        labeltext = [1 for x in range(len(df))]
+        labeltext = [0 for x in range(len(df))]
     elif df.shape[1] == 3:
         labeltext = df.iloc[:,2]
 
-    le = LabelEncoder()
-    labelvalue = le.fit_transform(labeltext)
-
-    return x, y, labeltext, labelvalue
+    return x, y, labeltext
     
 
 
 ##------------------------------------------------
 
-def parse_contents3d(contents3d):#, filename):
+def parse_contents3d(contents3d):
     content_type3d, content_string3d = contents3d.split(",")
-    print("----------------------")
-    print(type(contents3d))
     decoded3d = base64.b64decode(content_string3d)
-    print(type(decoded3d))
     with open("./plotdata/tmp3d.csv", "w") as f:
         f.write(decoded3d.decode("utf-8"))
  
@@ -178,15 +203,11 @@ def parse_contents3d(contents3d):#, filename):
     z = df3d.iloc[:, 2]
 
     if df3d.shape[1] == 3:
-        labeltext = [1 for x in range(len(df3d))]
+        labeltext = [0 for x in range(len(df3d))]
     elif df3d.shape[1] == 4:
         labeltext = df3d.iloc[:,3]
 
-    le = LabelEncoder()
-    labelvalue = le.fit_transform(labeltext)
-    
-    return x, y, z, labeltext, labelvalue
-
+    return x, y, z, labeltext
 
 # callback for rendering 2d graph
 @app.callback(
@@ -196,14 +217,31 @@ def parse_contents3d(contents3d):#, filename):
     Input("ylabel", "value"),
     Input("colorpalette2d","value"),
     Input("opacity2d","value"),
-    Input("size2d","value")
+    Input("size2d","value"),
+    Input("labelside2d", "value")
 )
-def update_graph(contents, xcolumn, ycolumn, colorset, opacity, size):
-    x, y, labeltext, labelvalue = parse_contents(contents[0])
-    xvalue = x
-    yvalue = y
-    lvalue = labelvalue
-    ltext = [str(x) for x in labeltext]
+def update_graph(contents, xcolumn, ycolumn, colorset, opacity, size, labelside):
+    x, y, labeltext = parse_contents(contents[0])
+    le = LabelEncoder()
+    if labelside == "no":
+        xvalue = x
+        yvalue = y
+        ltext = [str(x) for x in labeltext]
+        lvalue = labeltext
+
+    elif labelside == "right":
+        xvalue = x
+        yvalue = y
+        labelvalue = le.fit_transform(labeltext)
+        ltext = [str(x) for x in labeltext]
+        lvalue = labelvalue
+
+    elif labelside == "left":
+        xvalue = y
+        yvalue = labeltext
+        ltext = [str(i) for i in x]
+        lavelvalue = le.fit_transform(x)
+        lvalue = labelvalue
 
     return {"data":[go.Scatter(
         x=xvalue,
@@ -239,15 +277,34 @@ def show_filename(filename):
     Input("zlabel3d", "value"),
     Input("colorpalette3d","value"),
     Input("opacity3d","value"),
-    Input("size3d","value")
+    Input("size3d","value"),
+    Input("labelside3d", "value")
 )
-def update_graph3d(contents3d, xcolumn, ycolumn, zcolumn, colorset, opacity, size):
-    x, y, z, labeltext, labelvalue = parse_contents3d(contents3d[0])
-    xvalue = x
-    yvalue = y
-    zvalue = z
-    lvalue = labelvalue
-    ltext = [str(x) for x in labeltext]
+def update_graph3d(contents3d, xcolumn, ycolumn, zcolumn, colorset, opacity, size, labelside):
+    x, y, z, labeltext= parse_contents3d(contents3d[0])
+    le = LabelEncoder()
+    if labelside == "no":
+        xvalue = x
+        yvalue = y
+        zvalue = z
+        ltext = [str(x) for x in labeltext]
+        lvalue = labeltext
+
+    elif labelside == "right":
+        xvalue = x
+        yvalue = y
+        zvalue = z
+        ltext = [str(x) for x in labeltext]
+        lavelvalue = le.fit_transform(labeltext)
+        lvalue = lavelvalue
+
+    elif labelside == "left":
+        xvalue = y
+        yvalue = z
+        zvalue = labeltext
+        ltext = [str(i) for i in x]
+        labelvalue = le.fit_transform(x)
+        lvalue = labelvalue
 
     return {"data": [go.Scatter3d(
         x=xvalue,
