@@ -1,6 +1,6 @@
 ### dash-plotplayground
 
-This application is deployed on [Heroku]("https://rts-dashplayground.herokuapp.com/")
+This application is deployed on [Heroku](https://rts-dashplayground.herokuapp.com/)
 
 Receives a tab-separated txt file and Returns an interactive plot.
 
