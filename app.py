@@ -5,12 +5,13 @@ import numpy as np
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output
 import plotly.graph_objs as go
 
 from sklearn.preprocessing import LabelEncoder
 
-app = dash.Dash(__name__)
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
 # STYLE PARAMETER SETTINGS ----------------------------------------------------------
 colorpalette = [{"label":x, "value":x} for x in [
@@ -43,16 +44,19 @@ label_axis_position_2d = xy_axis_position_2d.copy()
 label_axis_position_2d.append({"label":"None","value":"NONE"})
 label_axis_position_3d = xyz_axis_position_3d.copy()
 label_axis_position_3d.append({"label":"None","value":"NONE"})
+plotareacolor = [{"label":x, "value":x} for x in [
+                "whitesmoke", "lightgray", "black", "lavender"]]
 
 # INTERFACE --------------------------------------------------------------------------
 # HEADER -----------------------------------------------------------------------------
-app.layout = html.Div(children=[
+app.layout = dbc.Container(style={"backgroundColor":"#f5f5f5"},children=[
+    html.Br(),
     html.H1(children="Plot Playground"),
     html.Div([
-    html.A("HOME", href="https://tsuchiya-ryo.github.io/orgsynscalc/"),
-    html.Br(),
+    html.A("HOME", href="https://tsuchiya-ryo.github.io/orgsynscalc/", style={"margin-right":"20px"}),
     html.A("Plot使い方", href="https://tsuchiya-ryo.github.io/orgsynscalc/plot-explanation.html")
-    ]),
+    ],
+    style={"font-size":"20px", "textAlign":"right"}),
 
 # 2D PLOT AREA -----------------------------------------------------------------------
     html.H2(children="2d-plot"),
@@ -65,15 +69,15 @@ app.layout = html.Div(children=[
         )
     ]),
 
-    html.Div([
-    html.Div(children="multiple sheets (for .xlsx/.xls, columns should be the same position):", style={"display":"inline-block"}),
-    dcc.Checklist(id="multisheets2d",
-                  options=multisheetscheck,
-                  value = [0],
-                  style={"display":"inline-block"})
-    ]),
+    dcc.Upload(
+        id='upload-data',
+        children=html.A("Click to Select 2d File (or drag and drop)"),
+        multiple=True,
+        max_size=filelimit,
+        style=uploadstyle),
 
-    html.P(children="~axis column positions~"),
+    html.Br(),
+
     html.Div([
         html.Div(children="Label :", style={"display":"inline-block"}),
         dcc.RadioItems(id="labelaxis2d",
@@ -98,14 +102,14 @@ app.layout = html.Div(children=[
             style={"display":"inline-block"}
         )]),
 
-    html.Br(),
+    html.Div([
+    html.Div(children="multiple sheets (for .xlsx/.xls, columns should be the same position):", style={"display":"inline-block"}),
+    dcc.Checklist(id="multisheets2d",
+                  options=multisheetscheck,
+                  value = [0],
+                  style={"display":"inline-block"})
+    ]),
 
-    dcc.Upload(
-        id='upload-data',
-        children=html.A("Click to Select 2d File (or drag and drop)"),
-        multiple=True,
-        max_size=filelimit,
-        style=uploadstyle),
     html.Br(),
 
     html.Div([
@@ -126,10 +130,16 @@ app.layout = html.Div(children=[
         options=marksize,
         value=5,
         style=dropdownbox
+    ),
+    dcc.Dropdown(
+        id="plotbgcolor2d",
+        options=plotareacolor,
+        value="whitesmoke",
+        style=dropdownbox
     )]),
     html.Br(),
 
-    html.P(id="title2d"),
+    html.P(id="title2d", style={"font-size":"20px", "font-weight":"bold"}),
     dcc.Input(id="xlabel", type="text", value="x", style=axis_name_input),
     dcc.Input(id="ylabel", type="text", value="y", style=axis_name_input),
 
@@ -137,6 +147,7 @@ app.layout = html.Div(children=[
         html.Div([dcc.Graph(id="example-graph")],
         style={"height":"100%", "width":"100%"})
     ]),
+    html.Br(),
 # 3D PLOT AREA --------------------------------------------------------------------
     html.H2(children="3d-plot"),
 
@@ -149,15 +160,15 @@ app.layout = html.Div(children=[
         )
     ]),
 
-    html.Div([
-    html.Div(children="multiple sheets (for .xlsx/.xls, columns should be the same position):", style={"display":"inline-block"}),
-    dcc.Checklist(id="multisheets3d",
-                    options=multisheetscheck,
-                    value = [0],
-                    style={"display":"inline-block"})
-    ]),
+    dcc.Upload(
+        id='upload-data3d',
+        children=html.A("Click to Select 3d File (or drag and drop)"),
+        multiple=True,
+        max_size=filelimit,
+        style=uploadstyle),
+    
+    html.Br(),
 
-    html.P(children="~axis column positions~"),
     html.Div([
         html.Div(children="Label :", style={"display":"inline-block"}),
         dcc.RadioItems(id="labelaxis3d",
@@ -168,34 +179,34 @@ app.layout = html.Div(children=[
     html.Div([
         html.Div(children="x-axis:", style={"display":"inline-block"}),
         dcc.RadioItems(id="xaxis3d",
-            options=xyz_axis_position_3d,
-            value=0,
-            style={"display":"inline-block"}
+                    options=xyz_axis_position_3d,
+                    value=0,
+                    style={"display":"inline-block"}
         )]),
-        html.Div([
+    html.Div([
         html.Div(children="y-axis:", style={"display":"inline-block"}),
         dcc.RadioItems(id="yaxis3d",
-            options=xyz_axis_position_3d,
-            value=1,
-            style={"display":"inline-block"}
+                    options=xyz_axis_position_3d,
+                    value=1,
+                    style={"display":"inline-block"}
         )]),
-        html.Div([
+    html.Div([
         html.Div(children="z-axis:", style={"display":"inline-block"}),
         dcc.RadioItems(id="zaxis3d",
-            options=xyz_axis_position_3d,
-            value=2,
-            style={"display":"inline-block"}
+                    options=xyz_axis_position_3d,
+                    value=2,
+                    style={"display":"inline-block"}
         )]),
 
-    html.Br(),
+    html.Div([
+        html.Div(children="multiple sheets (for .xlsx/.xls, columns should be the same position):", style={"display":"inline-block"}),
+        dcc.Checklist(id="multisheets3d",
+                    options=multisheetscheck,
+                    value = [0],
+                    style={"display":"inline-block"})
+        ]),
 
-    dcc.Upload(
-        id='upload-data3d',
-        children=html.A("Click to Select 3d File (or drag and drop)"),
-        multiple=True,
-        max_size=filelimit,
-        style=uploadstyle),
-     html.Br(),
+    html.Br(),
 
     html.Div([
     dcc.Dropdown(
@@ -215,11 +226,17 @@ app.layout = html.Div(children=[
         options=marksize,
         value=5,
         style=dropdownbox
+    ),
+    dcc.Dropdown(
+        id="plotbgcolor3d",
+        options=plotareacolor,
+        value="whitesmoke",
+        style=dropdownbox
     )]),
 
     html.Br(),
 
-    html.P(id="title3d"),
+    html.P(id="title3d", style={"font-size":"20px", "font-weight":"bold"}),
     dcc.Input(id="xlabel3d", type="text", value="x", style=axis_name_input),
     dcc.Input(id="ylabel3d", type="text", value="y", style=axis_name_input),
     dcc.Input(id="zlabel3d", type="text", value="z", style=axis_name_input),
@@ -288,8 +305,9 @@ def parse_contents3d(contents3d, filetype, numsheets, xaxis, yaxis, zaxis, label
     Input("colorpalette2d","value"),
     Input("opacity2d","value"),
     Input("size2d","value"),
+    Input("plotbgcolor2d", "value")
 )
-def update_graph(contents, filetype, numsheets, xaxis, yaxis, labelaxis, xcolumn, ycolumn, colorset, opacity, size):
+def update_graph(contents, filetype, numsheets, xaxis, yaxis, labelaxis, xcolumn, ycolumn, colorset, opacity, size, bgcolor):
     df = parse_contents(contents[0], filetype, numsheets, xaxis, yaxis, labelaxis)
     
     if labelaxis == "NONE":
@@ -327,7 +345,9 @@ def update_graph(contents, filetype, numsheets, xaxis, yaxis, labelaxis, xcolumn
         width=900,
         height=600,
         xaxis={"title":xcolumn},
-        yaxis={"title":ycolumn}
+        yaxis={"title":ycolumn},
+        plot_bgcolor=bgcolor,
+        paper_bgcolor=bgcolor
     )}
 
 # CALLBACK FOR DISPLAY FILENAME 2D--------------------------------------------------
@@ -355,8 +375,9 @@ def show_filename(filename):
     Input("colorpalette3d","value"),
     Input("opacity3d","value"),
     Input("size3d","value"),
+    Input("plotbgcolor3d", "value")
 )
-def update_graph3d(contents3d, filetype, numsheets, xaxis, yaxis, zaxis, labelaxis, xcolumn, ycolumn, zcolumn, colorset, opacity, size):
+def update_graph3d(contents3d, filetype, numsheets, xaxis, yaxis, zaxis, labelaxis, xcolumn, ycolumn, zcolumn, colorset, opacity, size, bgcolor):
     df3d= parse_contents3d(contents3d[0], filetype, numsheets, xaxis, yaxis, zaxis, labelaxis)
     
     if labelaxis == "NONE":
@@ -394,16 +415,18 @@ def update_graph3d(contents3d, filetype, numsheets, xaxis, yaxis, zaxis, labelax
         )
     )],
     "layout":go.Layout(
-	autosize=False,
-	width=900,
-	height=900,
-    scene=go.layout.Scene(
-        xaxis=go.layout.scene.XAxis(title=xcolumn),
-        yaxis=go.layout.scene.YAxis(title=ycolumn),
-        zaxis=go.layout.scene.ZAxis(title=zcolumn)
-    )
-    )
-     }
+        autosize=False,
+        width=900,
+        height=900,
+        plot_bgcolor=bgcolor,
+        paper_bgcolor=bgcolor,
+        scene=go.layout.Scene(
+            xaxis=go.layout.scene.XAxis(title=xcolumn),
+            yaxis=go.layout.scene.YAxis(title=ycolumn),
+            zaxis=go.layout.scene.ZAxis(title=zcolumn)
+        )
+        )
+        }
 
 # CALLBACK FOR DISPLAY FILENAME 3D ----------------------------------------------------
 @app.callback(
