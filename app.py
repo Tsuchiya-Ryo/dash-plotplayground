@@ -36,7 +36,7 @@ marksize = [{"label":round(i,0), "value":round(i,0)}\
 dropdownbox = {"height":"30px", "width":"150px", "display":"inline-block"}
 axis_name_input = {"height":"25px","width":"200px", "borderRadius":"5px",
                     "font-size":"16px", "borderWidth":"1px"}
-multisheetscount = [{"label": str(int(i)), "value": int(i)} for i in np.linspace(1, 5, 5)]
+multisheetscheck = [{"label": str(int(i)+1), "value": int(i)} for i in np.linspace(0, 4, 5)]
 xy_axis_position_2d = [{"label":i, "value":j} for i, j in zip(["1st","2nd","3rd"],range(3))]
 xyz_axis_position_3d = [{"label":i, "value":j} for i, j in zip(["1st","2nd","3rd","4th"],range(4))]
 label_axis_position_2d = xy_axis_position_2d.copy()
@@ -66,11 +66,11 @@ app.layout = html.Div(children=[
     ]),
 
     html.Div([
-    html.Div(children="multiple sheets (for .xlsx/.xls, columns must be the same position):", style={"display":"inline-block"}),
-    dcc.RadioItems(id="multisheets2d",
-                    options=multisheetscount,
-                    value = 1,
-                    style={"display":"inline-block"})
+    html.Div(children="multiple sheets (for .xlsx/.xls, columns should be the same position):", style={"display":"inline-block"}),
+    dcc.Checklist(id="multisheets2d",
+                  options=multisheetscheck,
+                  value = [0],
+                  style={"display":"inline-block"})
     ]),
 
     html.P(children="~axis column positions~"),
@@ -150,10 +150,10 @@ app.layout = html.Div(children=[
     ]),
 
     html.Div([
-    html.Div(children="multiple sheets (for .xlsx/.xls, columns must be the same position):", style={"display":"inline-block"}),
-    dcc.RadioItems(id="multisheets3d",
-                    options=multisheetscount,
-                    value = 1,
+    html.Div(children="multiple sheets (for .xlsx/.xls, columns should be the same position):", style={"display":"inline-block"}),
+    dcc.Checklist(id="multisheets3d",
+                    options=multisheetscheck,
+                    value = [0],
                     style={"display":"inline-block"})
     ]),
 
@@ -248,12 +248,8 @@ def parse_contents(contents, filetype, numsheets, xaxis, yaxis, labelaxis):
     elif filetype == "csv":
         df = pd.read_csv("./plotdata/tmp.csv", header=None)
     elif filetype == "xlsx":
-        if numsheets == 1:
-            df = pd.read_excel(io.BytesIO(decoded), header=None, sheet_name=0)
-        elif numsheets > 1:
-            sheet_name = [x for x in range(0, numsheets)]
-            df_dict = pd.read_excel(io.BytesIO(decoded), header=None, sheet_name=sheet_name)
-            df = pd.concat([df_dict[x] for x in range(0, numsheets)])
+        df_dict = pd.read_excel(io.BytesIO(decoded), header=None, sheet_name=numsheets)
+        df = pd.concat([df_dict[x] for x in numsheets])
 
     return df
 
@@ -271,12 +267,8 @@ def parse_contents3d(contents3d, filetype, numsheets, xaxis, yaxis, zaxis, label
     elif filetype == "csv":
         df3d = pd.read_csv("./plotdata/tmp3d.csv", header=None)
     elif filetype == "xlsx":
-        if numsheets == 1:
-            df3d = pd.read_excel(io.BytesIO(decoded3d), header=None, sheet_name=0)
-        elif numsheets > 1:
-            sheet_name = [x for x in range(0, numsheets)]
-            df3d_dict = pd.read_excel(io.BytesIO(decoded3d), header=None, sheet_name=sheet_name)
-            df3d = pd.concat([df3d_dict[x] for x in range(0, numsheets)])
+        df3d_dict = pd.read_excel(io.BytesIO(decoded3d), header=None, sheet_name=numsheets)
+        df3d = pd.concat([df3d_dict[x] for x in numsheets])
     
     return df3d
  
