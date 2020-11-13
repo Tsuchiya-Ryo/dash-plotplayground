@@ -1,12 +1,14 @@
 import base64, io
 import pandas as pd
 import numpy as np
+from scipy.signal import argrelmax, argrelmin
 
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_bootstrap_components as dbc
-from dash.dependencies import Input, Output
+import dash_daq as daq
+from dash.dependencies import Input, Output, State
 import plotly.graph_objs as go
 
 from sklearn.preprocessing import LabelEncoder
@@ -46,6 +48,7 @@ label_axis_position_3d = xyz_axis_position_3d.copy()
 label_axis_position_3d.append({"label":"None","value":"NONE"})
 plotareacolor = [{"label":x, "value":x} for x in [
                 "whitesmoke", "lightgray", "black", "lavender"]]
+inline = {"display":"inline-block"}
 
 # INTERFACE --------------------------------------------------------------------------
 # HEADER -----------------------------------------------------------------------------
@@ -137,6 +140,42 @@ app.layout = dbc.Container(style={"backgroundColor":"#f5f5f5"},children=[
         value="whitesmoke",
         style=dropdownbox
     )]),
+    html.Br(),
+
+    html.Div([
+    html.Div([
+        html.Div(children="Peak picking(local maxima/minima)", style=inline),
+        dbc.Button(
+            id="peak_submit",
+            outline=True,
+            color="primary",
+            size="sm",
+            n_clicks=0,
+            children="Submit",
+            style=inline)]),
+    html.Div(id="slider_value"),
+    daq.Slider(
+        id="slider",
+        min=1,
+        max=125,
+        step=2,
+        value=63,
+        size=500,
+        # handleLabel={"showCurrentValue":"True", "label":"value"}
+    ),
+    html.Div([
+        html.Div(children="Max: ", style=inline),
+        html.Div(id="maxpeak_show", style=inline),],
+        ),
+    html.Div([
+        html.Div(children="Min: ", style=inline),
+        html.Div(id="minpeak_show", style=inline),],
+        ),
+
+    ],
+    # style={"display":"inline-block"}
+    ),
+
     html.Br(),
 
     html.P(id="title2d", style={"font-size":"20px", "font-weight":"bold"}),
@@ -349,6 +388,52 @@ def update_graph(contents, filetype, numsheets, xaxis, yaxis, labelaxis, xcolumn
         plot_bgcolor=bgcolor,
         paper_bgcolor=bgcolor
     )}
+
+# CALLBACK FOR SLIDER VALUE -------------------------------------------------------
+@app.callback(
+    Output("slider_value", "children"),
+    Input("slider", "value")
+)
+def show_slider_value(svalue):
+    text = "window size: " + str(svalue)
+    return text
+
+# CALLBACK FOR SHOWING PEAK VALUE -------------------------------------------------
+@app.callback(
+    Output('maxpeak_show', 'children'),
+    Output("minpeak_show", "children"),
+
+    [Input("peak_submit", "n_clicks")],
+    [
+    State('upload-data', 'contents'),
+    State("filetype2d", "value"),
+    State("multisheets2d", "value"),
+    State("xaxis2d", "value"),
+    State("yaxis2d", "value"),
+    State("labelaxis2d", "value"),
+    State("slider", "value")]
+)
+def peakpickng(n_clicks, contents, filetype, numsheets, xaxis, yaxis, labelaxis, ordersize):
+    df = parse_contents(contents[0], filetype, numsheets, xaxis, yaxis, labelaxis)
+    if labelaxis == "NONE":
+        x = df.iloc[:, xaxis]
+        y = df.iloc[:, yaxis]
+    
+    else:
+        x = df.iloc[:, xaxis]
+        y = df.iloc[:, yaxis]
+ 
+    xvalue = x.values
+    yvalue = y.values
+    maxlist = []
+    minlist = []
+
+    for i in np.fliplr(argrelmax(yvalue, order=ordersize)):
+        maxlist.append(str(xvalue[i]))
+    for i in np.fliplr(argrelmin(yvalue, order=ordersize)):
+        minlist.append(str(xvalue[i]))
+
+    return maxlist, minlist
 
 # CALLBACK FOR DISPLAY FILENAME 2D--------------------------------------------------
 @app.callback(
